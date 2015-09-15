@@ -1,5 +1,5 @@
 # RedRank
-Regularized reduced rank regression.
+Reduced rank regression.
 
 Note: K-folds cross-validation is still a work in progress.
 
