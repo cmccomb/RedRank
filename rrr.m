@@ -12,17 +12,22 @@ function [beta, total_mse, t] = rrr(X, Y, varargin)
 %                   point number less than 1 to specify a significance
 %                   value to compute the rank by linear correlation between
 %                   rows in Y.  A vector of two integer [N, K] defined a
-%                   K-folds cross-validation pattern to use. The
-%                   appropriate rank is then estimated via minimum square
-%                   error of the k-folds testing set. If not set, defaults
-%                   to full rank.
-%       'weights'   Define a positive-definite s-by-s weighting matrix.
+%                   K-folds cross-validation pattern that subsamples N data
+%                   points from X and Y. The appropriate rank is then 
+%                   estimated via minimum square error of the k-folds 
+%                   testing set. 
+%       'weighting' Define a positive-definite s-by-s weighting matrix.
 %                   Default value is inv(cov(Y)).
 %
 %       
 
-% Check the X and Y matrices for validity
+% Make sure matrices are the same length
+assert(size(X,1)==size(Y,1), 'X and Y must have the same number of observations.')
 
+% Make sure the arguments are in the right format
+for i=1:2:length(varargin)
+    assert(isstr(varargin{i}), 'Additional arguments must specify a parameter first.');
+end
 
 % Define prima facie constants.
 r = size(X, 2);
@@ -34,8 +39,10 @@ t = min(r, s);
 G = 0;
 if nargin > 2
     for i=3:2:nargin
-        if strcmp(varargin{i-2}, 'weights')
+        if strcmp(varargin{i-2}, 'weighting')
             G = varargin{i-1};
+            assert((size(G,1)==s && size(G,2)==s), 'The weighting matrix must be square and have dimension equal to the number of dependent variables.');
+            [~, posdef] = chol(G); assert((posdef==0), 'The weighting matrix must be positive definite.');
         end
     end
 
@@ -45,6 +52,9 @@ if nargin > 2
                 % Extract constants
                 N = varargin{i-1}(1);
                 K = varargin{i-1}(2);
+                assert((n >= N), sprintf('The data contains only %d samples, but you specified a subsample of %d for cross-fold validation.', n, N));
+                assert((K <= N), 'The number of folds for cross-validation must be less than or equal to the sub-sample.');
+                assert((N/K == round(N/K)), 'Please specify a subsample number that is an integer multiple of the number of folds.');
                 
                 % Initialize vectors
                 mse_k = zeros(1,K);
@@ -62,17 +72,17 @@ if nargin > 2
                     mse_t(j) = mean(mse_k);
                 end
                 
-                mse_t
-                
                 % Find the best value for t
                 t = find(mse_t == min(mse_t));
                 
             elseif varargin{i-1} >= 1
                 % Just define t and run with it
                 t = varargin{i-1};
+                assert((round(t)==t), sprintf('The specified rank must be an integer value (you used t = %.2f).', t));
                 
             elseif varargin{i-1} < 1
                 % Find t based on correlation analysis
+                assert((varargin{i-1} > 0), sprintf('The specified confidence value must be greater than 0 (you used rho = %.2f)', varargin{i-1}));
                 t = num_uncorr(Y, varargin{i-1});
             end
         end
@@ -98,7 +108,7 @@ total_mse = compute_mse(beta, X, Y);
         if length(gg) == 1
             gg = inv(SSYY);
         end
-
+        
         % Define the matrix of eigen-values
         [VV, ~] = eigs(sqrtm(gg)*SSYX*inv(SSXX)*SSXY*sqrtm(gg));
         VV = fliplr(VV);
@@ -140,7 +150,7 @@ total_mse = compute_mse(beta, X, Y);
 
     function mse = compute_mse(B, X, Y)
         Y_pred = [ones(size(X, 1), 1) X]*B';
-        error = (Y - Y_pred).^2;
-        mse = mean(error(:));
+        er = (Y - Y_pred).^2;
+        mse = mean(er(:));
     end
 end
