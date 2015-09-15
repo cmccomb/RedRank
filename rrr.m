@@ -1,10 +1,10 @@
 function beta = rrr(X, Y, varargin)
-%GPLOT Plot graph (nodes and edges).
+%RRR Plot graph (nodes and edges).
 %   [BETA] = RRR(X, Y) Finds the reduced rank regression using a full rank 
 %   assumption. X is a n-by-r matrix, and Y is a n-by-s matrix. The rank, 
 %   t, is defined as t = min(r, s). 
 
-%   GPLOT(X, Y, 'PARAM1', VALUE1, 'PARAM2', VALUE2) specifies additional 
+%   RRR(X, Y, 'PARAM1', VALUE1, 'PARAM2', VALUE2) specifies additional 
 %   parameter name/value pairs chosen from the following:
 %       'rank'      Specifies how to compute the apprporiate rank. Follow
 %                   with an integer greater than or equal to 1 to specify 
