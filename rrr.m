@@ -1,4 +1,4 @@
-function beta = rrr(X, Y, varargin)
+function [beta, total_mse, t] = rrr(X, Y, varargin)
 %RRR Plot graph (nodes and edges).
 %   [BETA] = RRR(X, Y) Finds the reduced rank regression using a full rank 
 %   assumption. X is a n-by-r matrix, and Y is a n-by-s matrix. The rank, 
@@ -27,6 +27,7 @@ function beta = rrr(X, Y, varargin)
 % Define prima facie constants.
 r = size(X, 2);
 s = size(Y, 2);
+n = size(X, 1);
 
 % Handle the optimal arguments
 t = min(r, s);
@@ -41,27 +42,51 @@ if nargin > 2
     for i=3:2:nargin
         if strcmp(varargin{i-2}, 'rank')
             if length(varargin{i-1}) == 2
-                % Do cross-fold validation
+                % Extract constants
+                N = varargin{i-1}(1);
+                K = varargin{i-1}(2);
+                
+                % Initialize vectors
+                mse_k = zeros(1,K);
+                mse_t = zeros(1,s);
+                
+                % Make folds
+                cv = make_folds(N, K, n);
+                
+                % Test folds
+                for j=1:1:s
+                    for k=1:1:K
+                        bb = compute_rrr(X(cv(k).train, :), Y(cv(k).train, :), j, G);
+                        mse_k(k) = compute_mse(bb, X(cv(k).test, :), Y(cv(k).test, :));
+                    end
+                    mse_t(j) = mean(mse_k);
+                end
+                
+                mse_t
+                
+                % Find the best value for t
+                t = find(mse_t == min(mse_t));
+                
             elseif varargin{i-1} >= 1
                 % Just define t and run with it
                 t = varargin{i-1};
+                
             elseif varargin{i-1} < 1
+                % Find t based on correlation analysis
                 t = num_uncorr(Y, varargin{i-1});
             end
         end
     end
 end
 
-t
-
 beta = compute_rrr(X, Y, t, G);
+
+total_mse = compute_mse(beta, X, Y);
 
 
     function b = compute_rrr(xx, yy, tt, gg)
         % Define constants
         rr = size(xx, 2);
-        nn = size(xx, 1);
-        ss = size(yy, 2);
         
         full_covariance = cov([xx yy]);
         SSXX = full_covariance(1:rr, 1:rr);
@@ -99,5 +124,23 @@ beta = compute_rrr(X, Y, t, G);
         end    
         
         t = size(yy, 2);
+    end
+
+    function cv = make_folds(number_of_samples, number_of_folds, max_samples)
+        options = randsample(max_samples, number_of_samples);
+        fold_size = number_of_samples/number_of_folds;
+        for ii=1:1:number_of_folds
+            temp = options;
+            test_slice = ((ii-1)*fold_size+1):1:(ii*fold_size);
+            cv(ii).test = temp(test_slice);
+            temp(test_slice) = [];
+            cv(ii).train = temp;
+        end
+    end
+
+    function mse = compute_mse(B, X, Y)
+        Y_pred = [ones(size(X, 1), 1) X]*B';
+        error = (Y - Y_pred).^2;
+        mse = mean(error(:));
     end
 end
