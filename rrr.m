@@ -26,7 +26,7 @@ assert(size(X,1)==size(Y,1), 'X and Y must have the same number of observations.
 
 % Make sure the arguments are in the right format
 for i=1:2:length(varargin)
-    assert(isstr(varargin{i}), 'Additional arguments must specify a parameter first.');
+    assert(isstr(varargin{i}), 'Additional arguments must specify a parameter string first.');
 end
 
 % Define prima facie constants.
