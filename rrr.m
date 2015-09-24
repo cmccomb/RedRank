@@ -1,5 +1,5 @@
 function [beta, total_mse, t] = rrr(X, Y, varargin)
-%RRR Plot graph (nodes and edges).
+%RRR Performed reduced rank multivariate regression.
 %   [BETA] = RRR(X, Y) Finds the reduced rank regression using a full rank 
 %   assumption. X is a n-by-r matrix, and Y is a n-by-s matrix. The rank, 
 %   t, is defined as t = min(r, s). 
