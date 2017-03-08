@@ -1,25 +1,25 @@
 function [beta, total_mse, t] = rrr(X, Y, varargin)
 %RRR Performed reduced rank multivariate regression.
-%   [BETA] = RRR(X, Y) Finds the reduced rank regression using a full rank 
-%   assumption. X is a n-by-r matrix, and Y is a n-by-s matrix. The rank, 
-%   t, is defined as t = min(r, s). 
+%   [BETA] = RRR(X, Y) Finds the reduced rank regression using a full rank
+%   assumption. X is a n-by-r matrix, and Y is a n-by-s matrix. The rank,
+%   t, is defined as t = min(r, s).
 
-%   RRR(X, Y, 'PARAM1', VALUE1, 'PARAM2', VALUE2) specifies additional 
+%   RRR(X, Y, 'PARAM1', VALUE1, 'PARAM2', VALUE2) specifies additional
 %   parameter name/value pairs chosen from the following:
 %       'rank'      Specifies how to compute the apprporiate rank. Follow
-%                   with an integer greater than or equal to 1 to specify 
+%                   with an integer greater than or equal to 1 to specify
 %                   the rank of the matrix directly. Follow with a floating
 %                   point number less than 1 to specify a significance
 %                   value to compute the rank by linear correlation between
 %                   rows in Y.  A vector of two integer [N, K] defined a
 %                   K-folds cross-validation pattern that subsamples N data
-%                   points from X and Y. The appropriate rank is then 
-%                   estimated via minimum square error of the k-folds 
-%                   testing set. 
+%                   points from X and Y. The appropriate rank is then
+%                   estimated via minimum square error of the k-folds
+%                   testing set.
 %       'weighting' Define a positive-definite s-by-s weighting matrix.
 %                   Default value is inv(cov(Y)).
 %
-%       
+%
 
 % Make sure matrices are the same length
 assert(size(X,1)==size(Y,1), 'X and Y must have the same number of observations.')
@@ -55,14 +55,14 @@ if nargin > 2
                 assert((n >= N), sprintf('The data contains only %d samples, but you specified a subsample of %d for cross-fold validation.', n, N));
                 assert((K <= N), 'The number of folds for cross-validation must be less than or equal to the sub-sample.');
                 assert((N/K == round(N/K)), 'Please specify a subsample number that is an integer multiple of the number of folds.');
-                
+
                 % Initialize vectors
                 mse_k = zeros(1,K);
                 mse_t = zeros(1,s);
-                
+
                 % Make folds
                 cv = make_folds(N, K, n);
-                
+
                 % Test folds
                 for j=1:1:s
                     for k=1:1:K
@@ -71,15 +71,15 @@ if nargin > 2
                     end
                     mse_t(j) = mean(mse_k);
                 end
-                
+
                 % Find the best value for t
                 t = find(mse_t == min(mse_t));
-                
+
             elseif varargin{i-1} >= 1
                 % Just define t and run with it
                 t = varargin{i-1};
                 assert((round(t)==t), sprintf('The specified rank must be an integer value (you used t = %.2f).', t));
-                
+
             elseif varargin{i-1} < 1
                 % Find t based on correlation analysis
                 assert((varargin{i-1} > 0), sprintf('The specified confidence value must be greater than 0 (you used rho = %.2f)', varargin{i-1}));
@@ -97,23 +97,21 @@ total_mse = compute_mse(beta, X, Y);
     function b = compute_rrr(xx, yy, tt, gg)
         % Define constants
         rr = size(xx, 2);
-        
+
         full_covariance = cov([xx yy]);
         SSXX = full_covariance(1:rr, 1:rr);
         SSYX = full_covariance((rr+1):end, 1:rr);
         SSXY = full_covariance(1:rr, (rr+1):end);
         SSYY = full_covariance((rr+1):end, (rr+1):end);
-        
+
         % Define the weighting matrix
         if length(gg) == 1
             gg = inv(SSYY);
         end
-        
-        % Define the matrix of eigen-values
-        [VV, ~] = eigs(sqrtm(gg)*SSYX*inv(SSXX)*SSXY*sqrtm(gg));
-        VV = fliplr(VV);
-        VVt = VV(:,1:tt);
 
+        % Define the matrix of eigen-values
+        [VVt,~] = eigs(sqrtm(gg)*SSYX*inv(SSXX)*SSXY*sqrtm(gg),tt);
+        
         % Define the decomposition and mean matrices
         AAt = sqrtm(inv(gg))*VVt;
         BBt = VVt'*sqrtm(gg)*SSYX*inv(SSXX);
@@ -131,8 +129,8 @@ total_mse = compute_mse(beta, X, Y);
             end
             idx = find(min(p) == min(min(p)));
             yy(:,idx(1)) = [];
-        end    
-        
+        end
+
         t = size(yy, 2);
     end
 
